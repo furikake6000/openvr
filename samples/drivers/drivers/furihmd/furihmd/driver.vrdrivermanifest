@@ -1,0 +1,10 @@
+{
+	"alwaysActivate": true,
+	"name" : "furihmd",
+	"directory" : "",
+	"resourceOnly" : false,
+	"hmd_presence" :
+	[
+		"*.*"
+	]
+}
