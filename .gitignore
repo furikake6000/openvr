@@ -1,0 +1,13 @@
+.vs/
+**/.vs/
+**/x64/
+**/Win32/
+**/Release/
+**/Debug/
+**/bin/
+**/obj/
+**/output/
+**/*.pdb
+**/*.exe
+**/*.log
+**/*.vcxproj.user
