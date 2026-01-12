@@ -83,13 +83,15 @@ vr::EVRInitError MyHMDControllerDeviceDriver::Activate( uint32_t unObjectId )
 	vr::VRProperties()->SetFloatProperty( container, vr::Prop_UserIpdMeters_Float, ipd );
 
 	// For HMDs, it's required that a refresh rate is set otherwise VRCompositor will fail to start.
-	vr::VRProperties()->SetFloatProperty( container, vr::Prop_DisplayFrequency_Float, 0.f );
+	const float display_frequency = vr::VRSettings()->GetFloat( my_hmd_display_settings_section, "display_frequency" );
+	vr::VRProperties()->SetFloatProperty( container, vr::Prop_DisplayFrequency_Float, display_frequency );
 
 	// The distance from the user's eyes to the display in meters. This is used for reprojection.
 	vr::VRProperties()->SetFloatProperty( container, vr::Prop_UserHeadToEyeDepthMeters_Float, 0.f );
 
 	// How long from the compositor to submit a frame to the time it takes to display it on the screen.
-	vr::VRProperties()->SetFloatProperty( container, vr::Prop_SecondsFromVsyncToPhotons_Float, 0.11f );
+	const float vsync_to_photons = vr::VRSettings()->GetFloat( my_hmd_display_settings_section, "vsync_to_photons" );
+	vr::VRProperties()->SetFloatProperty( container, vr::Prop_SecondsFromVsyncToPhotons_Float, vsync_to_photons );
 
 	// avoid "not fullscreen" warnings from vrmonitor
 	vr::VRProperties()->SetBoolProperty( container, vr::Prop_IsOnDesktop_Bool, false );

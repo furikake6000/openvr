@@ -12,6 +12,6 @@
 	    "render_width": 1512,
 	    "render_height": 1680,
 	    "vsync_to_photons": 0.011,
-	    "display_frequency": 0
+	    "display_frequency": 90
 	}
 }
