@@ -103,6 +103,9 @@ vr::EVRInitError MyHMDControllerDeviceDriver::Activate( uint32_t unObjectId )
 	// of our driver.
 	vr::VRProperties()->SetStringProperty( container, vr::Prop_InputProfilePath_String, "{furihmd}/input/furihmd_profile.json" );
 
+	// 近接センサーは実装されていないため、無効化
+	vr::VRProperties()->SetBoolProperty( container, vr::Prop_ContainsProximitySensor_Bool, false );
+
 	// Let's set up handles for all of our components.
 	// Even though these are also defined in our input profile,
 	// We need to get handles to them to update the inputs.
