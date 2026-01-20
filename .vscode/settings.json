@@ -1,0 +1,5 @@
+{
+  "cmake.configurePreset": "windows-msvc-x64",
+  "cmake.buildPreset": "windows-msvc-x64-release",
+  "cmake.sourceDirectory": "${workspaceFolder}/samples"
+}

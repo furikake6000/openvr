@@ -11,3 +11,5 @@
 **/*.exe
 **/*.log
 **/*.vcxproj.user
+/.vs/
+/build/
