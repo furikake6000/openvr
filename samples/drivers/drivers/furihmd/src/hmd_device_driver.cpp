@@ -3,6 +3,7 @@
 
 #include "driverlog.h"
 #include "vrmath.h"
+#include <chrono>
 #include <string.h>
 
 // Let's create some variables for strings used in getting settings.
@@ -358,4 +359,123 @@ bool MyHMDDisplayComponent::ComputeInverseDistortion(vr::HmdVector2_t* pResult, 
 {
 	//Return false to let SteamVR infer an estimate from ComputeDistortion
 	return false;
+}
+
+//-----------------------------------------------------------------------------
+// VIRTUAL DISPLAY DEVICE METHOD DEFINITIONS
+//-----------------------------------------------------------------------------
+
+namespace
+{
+	long long NowMicroseconds()
+	{
+		return std::chrono::duration_cast< std::chrono::microseconds >(
+			std::chrono::steady_clock::now().time_since_epoch() ).count();
+	}
+}
+
+MyVirtualDisplayDevice::MyVirtualDisplayDevice( const std::string &serial, const std::string &model )
+	: serial_( serial )
+	, model_( model )
+{
+	device_index_ = vr::k_unTrackedDeviceIndexInvalid;
+	frame_counter_ = 0;
+	last_vsync_us_ = 0;
+	is_active_ = false;
+	logged_present_ = false;
+}
+
+vr::EVRInitError MyVirtualDisplayDevice::Activate( uint32_t unObjectId )
+{
+	device_index_ = unObjectId;
+	frame_counter_ = 0;
+	last_vsync_us_ = 0;
+	is_active_ = true;
+	logged_present_ = false;
+
+	vr::PropertyContainerHandle_t container = vr::VRProperties()->TrackedDeviceToPropertyContainer( device_index_ );
+	vr::VRProperties()->SetStringProperty( container, vr::Prop_ModelNumber_String, model_.c_str() );
+	vr::VRProperties()->SetStringProperty( container, vr::Prop_SerialNumber_String, serial_.c_str() );
+	vr::VRProperties()->SetStringProperty( container, vr::Prop_RegisteredDeviceType_String, "furihmd_display" );
+	vr::VRProperties()->SetStringProperty( container, vr::Prop_TrackingSystemName_String, "furihmd" );
+	vr::VRProperties()->SetStringProperty( container, vr::Prop_ManufacturerName_String, "furihmd" );
+
+	return vr::VRInitError_None;
+}
+
+void MyVirtualDisplayDevice::EnterStandby()
+{
+}
+
+void *MyVirtualDisplayDevice::GetComponent( const char *pchComponentNameAndVersion )
+{
+	if ( strcmp( pchComponentNameAndVersion, vr::IVRVirtualDisplay_Version ) == 0 )
+	{
+		return static_cast< vr::IVRVirtualDisplay * >( this );
+	}
+	return nullptr;
+}
+
+void MyVirtualDisplayDevice::DebugRequest( const char *pchRequest, char *pchResponseBuffer, uint32_t unResponseBufferSize )
+{
+	if ( unResponseBufferSize >= 1 )
+		pchResponseBuffer[ 0 ] = 0;
+}
+
+vr::DriverPose_t MyVirtualDisplayDevice::GetPose()
+{
+	vr::DriverPose_t pose = { 0 };
+	pose.deviceIsConnected = true;
+	pose.poseIsValid = false;
+	pose.result = vr::TrackingResult_Uninitialized;
+	pose.qWorldFromDriverRotation.w = 1.f;
+	pose.qDriverFromHeadRotation.w = 1.f;
+	return pose;
+}
+
+void MyVirtualDisplayDevice::Deactivate()
+{
+	is_active_ = false;
+	device_index_ = vr::k_unTrackedDeviceIndexInvalid;
+}
+
+void MyVirtualDisplayDevice::Present( const vr::PresentInfo_t *pPresentInfo, uint32_t unPresentInfoSize )
+{
+	if ( !is_active_ )
+		return;
+
+	if ( pPresentInfo == nullptr || unPresentInfoSize < sizeof( vr::PresentInfo_t ) )
+		return;
+
+	last_vsync_us_ = NowMicroseconds();
+	frame_counter_.fetch_add( 1 );
+
+	if ( !logged_present_.exchange( true ) )
+	{
+		DriverLog( "VirtualDisplay Present received. frame=%llu", frame_counter_.load() );
+	}
+}
+
+void MyVirtualDisplayDevice::WaitForPresent()
+{
+	// Minimal implementation: no blocking work queued.
+}
+
+bool MyVirtualDisplayDevice::GetTimeSinceLastVsync( float *pfSecondsSinceLastVsync, uint64_t *pulFrameCounter )
+{
+	const long long last_us = last_vsync_us_.load();
+	if ( pulFrameCounter )
+	{
+		*pulFrameCounter = frame_counter_.load();
+	}
+
+	if ( last_us == 0 )
+		return false;
+
+	if ( pfSecondsSinceLastVsync )
+	{
+		const long long now_us = NowMicroseconds();
+		*pfSecondsSinceLastVsync = static_cast< float >( ( now_us - last_us ) / 1000000.0 );
+	}
+	return true;
 }

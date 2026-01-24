@@ -83,3 +83,35 @@ private:
 
 	std::thread my_pose_update_thread_;
 };
+
+//-----------------------------------------------------------------------------
+// Purpose: Represents a virtual display redirect device that receives the final
+// composited backbuffer via IVRVirtualDisplay.
+//-----------------------------------------------------------------------------
+class MyVirtualDisplayDevice : public vr::ITrackedDeviceServerDriver, public vr::IVRVirtualDisplay
+{
+public:
+	explicit MyVirtualDisplayDevice( const std::string &serial, const std::string &model );
+
+	// ----- ITrackedDeviceServerDriver -----
+	vr::EVRInitError Activate( uint32_t unObjectId ) override;
+	void EnterStandby() override;
+	void *GetComponent( const char *pchComponentNameAndVersion ) override;
+	void DebugRequest( const char *pchRequest, char *pchResponseBuffer, uint32_t unResponseBufferSize ) override;
+	vr::DriverPose_t GetPose() override;
+	void Deactivate() override;
+
+	// ----- IVRVirtualDisplay -----
+	void Present( const vr::PresentInfo_t *pPresentInfo, uint32_t unPresentInfoSize ) override;
+	void WaitForPresent() override;
+	bool GetTimeSinceLastVsync( float *pfSecondsSinceLastVsync, uint64_t *pulFrameCounter ) override;
+
+private:
+	std::string serial_;
+	std::string model_;
+	std::atomic< uint32_t > device_index_;
+	std::atomic< uint64_t > frame_counter_;
+	std::atomic< long long > last_vsync_us_;
+	std::atomic< bool > is_active_;
+	std::atomic< bool > logged_present_;
+};

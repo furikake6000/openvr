@@ -23,4 +23,5 @@ public:
 
 private:
 	std::unique_ptr<MyHMDControllerDeviceDriver> my_hmd_device_;
+	std::unique_ptr<MyVirtualDisplayDevice> my_virtual_display_device_;
 };

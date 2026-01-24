@@ -23,6 +23,15 @@ vr::EVRInitError MyDeviceProvider::Init( vr::IVRDriverContext *pDriverContext )
 		return vr::VRInitError_Driver_Unknown;
 	}
 
+	// Create a display redirect device to receive the final composited backbuffer.
+	const std::string display_serial = my_hmd_device_->MyGetSerialNumber() + std::string( "_display" );
+	my_virtual_display_device_ = std::make_unique< MyVirtualDisplayDevice >( display_serial, "FuriHMD Virtual Display" );
+	if ( !vr::VRServerDriverHost()->TrackedDeviceAdded( display_serial.c_str(), vr::TrackedDeviceClass_DisplayRedirect, my_virtual_display_device_.get() ) )
+	{
+		DriverLog( "Failed to create virtual display device!" );
+		return vr::VRInitError_Driver_Unknown;
+	}
+
 	return vr::VRInitError_None;
 }
 
@@ -93,4 +102,5 @@ void MyDeviceProvider::Cleanup()
 {
 	// Our controller devices will have already deactivated. Let's now destroy them.
 	my_hmd_device_ = nullptr;
+	my_virtual_display_device_ = nullptr;
 }
