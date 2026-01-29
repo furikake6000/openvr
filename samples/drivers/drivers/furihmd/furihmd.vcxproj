@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{13391803-5e60-4bed-9b54-f9004412e16c}</ProjectGuid>
-    <RootNamespace>simplecontroller</RootNamespace>
+    <ProjectGuid>{A57DE6D4-10CC-47D6-B4DE-FEDF0BCA3364}</ProjectGuid>
+    <RootNamespace>furihmd</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -73,23 +73,25 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)output\drivers\$(ProjectName)\bin\win$(PlatformArchitecture)</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <TargetName>driver_$(ProjectName)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)output\drivers\$(ProjectName)\bin\win$(PlatformArchitecture)</OutDir>
-    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <TargetName>driver_$(ProjectName)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)output\drivers\$(ProjectName)\bin\win$(PlatformArchitecture)</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <TargetName>driver_$(ProjectName)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)output\drivers\$(ProjectName)\bin\win$(PlatformArchitecture)</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <TargetName>driver_$(ProjectName)</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -173,12 +175,12 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\controller_device_driver.cpp" />
+    <ClCompile Include="src\hmd_device_driver.cpp" />
     <ClCompile Include="src\device_provider.cpp" />
     <ClCompile Include="src\hmd_driver_factory.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\controller_device_driver.h" />
+    <ClInclude Include="src\hmd_device_driver.h" />
     <ClInclude Include="src\device_provider.h" />
   </ItemGroup>
   <ItemGroup>
