@@ -1,0 +1,123 @@
+{
+    "jsonid": "input_profile",
+    "controller_type": "emucontroller",
+    "device_class": "TrackedDeviceClass_Controller",
+    "resource_root": "emucontroller",
+    "driver_name": "emucontroller",
+    "input_bindingui_mode": "controller_handed",
+    "should_show_binding_errors": true,
+    "input_bindingui_left": {
+        "image": "{emucontroller}/icons/controller_left.png"
+    },
+    "input_bindingui_right": {
+        "image": "{emucontroller}/icons/controller_right.png"
+    },
+    "input_source": {
+        "/input/a": {
+            "type": "button",
+            "click": {
+                "output": "/input/a/click"
+            },
+            "touch": {
+                "output": "/input/a/touch"
+            }
+        },
+        "/input/b": {
+            "type": "button",
+            "click": {
+                "output": "/input/b/click"
+            },
+            "touch": {
+                "output": "/input/b/touch"
+            }
+        },
+        "/input/x": {
+            "type": "button",
+            "click": {
+                "output": "/input/x/click"
+            },
+            "touch": {
+                "output": "/input/x/touch"
+            }
+        },
+        "/input/y": {
+            "type": "button",
+            "click": {
+                "output": "/input/y/click"
+            },
+            "touch": {
+                "output": "/input/y/touch"
+            }
+        },
+        "/input/trigger": {
+            "type": "trigger",
+            "click": {
+                "output": "/input/trigger/click"
+            },
+            "value": {
+                "output": "/input/trigger/value"
+            }
+        },
+        "/input/grip": {
+            "type": "trigger",
+            "click": {
+                "output": "/input/grip/click"
+            },
+            "value": {
+                "output": "/input/grip/value"
+            }
+        },
+        "/input/joystick": {
+            "type": "joystick",
+            "click": {
+                "output": "/input/joystick/click"
+            },
+            "touch": {
+                "output": "/input/joystick/touch"
+            },
+            "position": {
+                "output": {
+                    "x": "/input/joystick/x",
+                    "y": "/input/joystick/y"
+                }
+            }
+        },
+        "/input/bumper": {
+            "type": "button",
+            "click": {
+                "output": "/input/bumper/click"
+            }
+        },
+        "/input/dpad": {
+            "type": "dpad",
+            "north": {
+                "output": "/input/dpad/up"
+            },
+            "south": {
+                "output": "/input/dpad/down"
+            },
+            "west": {
+                "output": "/input/dpad/left"
+            },
+            "east": {
+                "output": "/input/dpad/right"
+            }
+        },
+        "/input/system": {
+            "type": "button",
+            "click": {
+                "output": "/input/system/click"
+            }
+        },
+        "/input/application_menu": {
+            "type": "button",
+            "click": {
+                "output": "/input/application_menu/click"
+            }
+        },
+        "/output/haptic": {
+            "type": "vibration",
+            "output": "/output/haptic"
+        }
+    }
+}

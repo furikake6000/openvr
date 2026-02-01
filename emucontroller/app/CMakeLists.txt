@@ -28,6 +28,11 @@ target_include_directories(imgui PUBLIC
 # EmuController GUI Application
 add_executable(EmuController WIN32
     src/main.cpp
+    src/ipc_client.cpp
+)
+
+target_include_directories(EmuController PRIVATE
+    src
 )
 
 target_link_libraries(EmuController PRIVATE

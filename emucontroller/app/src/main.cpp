@@ -1,5 +1,4 @@
 // EmuController - OpenVR Controller Emulator GUI
-// Phase 1: GUI Mock (no driver connection)
 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
@@ -10,6 +9,7 @@
 #include <cmath>
 
 #include "input_state.h"
+#include "ipc_client.h"
 
 // DirectX 11 globals
 static ID3D11Device*            g_pd3dDevice = nullptr;
@@ -29,6 +29,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static emu::ControllerInputState g_leftController;
 static emu::ControllerInputState g_rightController;
 static emu::KeyMapping g_keyMapping;
+
+// IPC Client
+static emu::IPCClient g_ipcClient;
 
 // Update input state from keyboard
 void UpdateInput(HWND hwnd) {
@@ -257,6 +260,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     ImVec4 clear_color = ImVec4(0.1f, 0.1f, 0.15f, 1.0f);
 
+    // Start IPC connection thread
+    g_ipcClient.StartConnectionThread();
+
     // Main loop
     bool done = false;
     while (!done) {
@@ -281,6 +287,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         // Update input state
         UpdateInput(hwnd);
 
+        // Send input to driver via IPC
+        if (g_ipcClient.IsConnected()) {
+            g_ipcClient.SendInputState(g_leftController, g_rightController);
+        }
+
         // Start the Dear ImGui frame
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
@@ -297,8 +308,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         ImGui::Text("EmuController v1.0 - OpenVR Controller Emulator");
         ImGui::Separator();
 
-        // Connection status (mock - always disconnected for now)
-        ImGui::TextColored(ImVec4(0.8f, 0.4f, 0.4f, 1.0f), "Status: Not Connected (Mock Mode)");
+        // Connection status
+        if (g_ipcClient.IsConnected()) {
+            ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "Status: Connected to SteamVR Driver");
+        } else {
+            ImGui::TextColored(ImVec4(0.8f, 0.4f, 0.4f, 1.0f), "Status: Waiting for SteamVR Driver...");
+        }
         ImGui::Separator();
 
         // Controller panels side by side
@@ -330,6 +345,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     // Cleanup
+    g_ipcClient.StopConnectionThread();
+    g_ipcClient.Disconnect();
+
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();

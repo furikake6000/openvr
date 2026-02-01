@@ -14,4 +14,4 @@ include_directories(${CMAKE_SOURCE_DIR}/common)
 
 # Subdirectories
 add_subdirectory(app)
-# add_subdirectory(driver)  # TODO: Phase 2
+add_subdirectory(driver)

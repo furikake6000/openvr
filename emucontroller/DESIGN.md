@@ -197,8 +197,22 @@ cmake -S emucontroller -B emucontroller/build -G "Visual Studio 17 2022" -A x64;
 ```
 
 ### 出力ファイル
+
+**GUIアプリケーション:**
 - Release: `build/bin/Release/EmuController.exe`
 - Debug: `build/bin/Debug/EmuController.exe`
+
+**OpenVRドライバー:**
+- DLL出力: `build/drivers/emucontroller/bin/win64/driver_emucontroller.dll`
+- マニフェスト: `build/drivers/emucontroller/driver.vrdrivermanifest`
+- リソース: `build/drivers/emucontroller/resources/`
+
+> **注意**: Visual Studioは通常、出力を`Release/`または`Debug/`サブディレクトリに配置しますが、
+> SteamVRは`bin/win64/driver_emucontroller.dll`の固定パスを期待します。
+> この問題を解決するため、`driver/CMakeLists.txt`のPOST_BUILDコマンドで
+> `$<TARGET_FILE:driver_emucontroller>`ジェネレータ式を使用し、
+> ビルド後にDLLを正しい場所にコピーしています。
+> これによりDebug/Releaseビルドが互いを上書きすることなく動作します。
 
 ### クリーンビルド
 
