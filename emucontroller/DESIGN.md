@@ -179,6 +179,57 @@ emucontroller/
 
 ---
 
+## ビルド方法
+
+### 必要環境
+- Windows 10/11
+- Visual Studio 2022（C++デスクトップ開発）
+- CMake 3.16以上
+
+### ビルド手順
+
+```bash
+# ビルド実行（Release）
+cmake -S emucontroller -B emucontroller/build -G "Visual Studio 17 2022" -A x64; cmake --build emucontroller/build --config Release
+
+# ビルド実行（Debug）
+cmake -S emucontroller -B emucontroller/build -G "Visual Studio 17 2022" -A x64; cmake --build emucontroller/build --config Debug
+```
+
+### 出力ファイル
+- Release: `build/bin/Release/EmuController.exe`
+- Debug: `build/bin/Debug/EmuController.exe`
+
+### クリーンビルド
+
+```bash
+# ビルドディレクトリを削除して再生成
+cd emucontroller
+rm -rf build
+mkdir build && cd build
+cmake .. -G "Visual Studio 17 2022" -A x64
+cmake --build . --config Release
+```
+
+**PowerShellの場合:**
+```powershell
+cd emucontroller
+Remove-Item -Recurse -Force build
+mkdir build
+cd build
+cmake .. -G "Visual Studio 17 2022" -A x64
+cmake --build . --config Release
+```
+
+### Visual Studioで開く場合
+
+```bash
+cd emucontroller/build
+start EmuController.sln
+```
+
+---
+
 ## 検証方法
 
 1. **GUIモック**: アプリ起動でウィンドウ表示、キー入力が画面に反映されること
