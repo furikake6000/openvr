@@ -81,4 +81,58 @@ struct KeyMapping {
     int menu_button      = 0x09;  // VK_TAB
 };
 
+// HMD pose state
+struct HMDPose {
+    // Position (meters)
+    float position[3] = { 0.0f, 1.6f, 0.0f };  // Default: standing height
+
+    // Rotation (Euler angles in radians)
+    float yaw = 0.0f;    // Left/Right rotation
+    float pitch = 0.0f;  // Up/Down rotation
+    float roll = 0.0f;   // Tilt (usually 0)
+
+    // Reset to default standing position
+    void Reset() {
+        position[0] = 0.0f;
+        position[1] = 1.6f;  // Standing height
+        position[2] = 0.0f;
+        yaw = 0.0f;
+        pitch = 0.0f;
+        roll = 0.0f;
+    }
+};
+
+// HMD control key mappings
+struct HMDKeyMapping {
+    // Movement (WASD + QE for up/down)
+    int move_forward  = 'W';
+    int move_backward = 'S';
+    int move_left     = 'A';
+    int move_right    = 'D';
+    int move_up       = 'E';
+    int move_down     = 'Q';
+
+    // Speed modifiers
+    int speed_fast    = 0xA0;  // VK_LSHIFT - fast movement
+    int speed_slow    = 0xA2;  // VK_LCONTROL - slow movement
+
+    // Reset position
+    int reset_pose    = 'R';
+
+    // Mouse look toggle (right mouse button)
+    int mouse_look_toggle = 0x02;  // VK_RBUTTON
+};
+
+// HMD control settings
+struct HMDSettings {
+    float move_speed = 2.0f;       // Base movement speed (m/s)
+    float fast_multiplier = 2.0f;  // Speed multiplier when Shift held
+    float slow_multiplier = 0.25f; // Speed multiplier when Ctrl held
+    float mouse_sensitivity = 0.002f;  // Radians per pixel
+
+    // Pitch limits to prevent flipping
+    float min_pitch = -1.5f;  // ~-85 degrees
+    float max_pitch = 1.5f;   // ~+85 degrees
+};
+
 } // namespace emu

@@ -30,6 +30,14 @@ static emu::ControllerInputState g_leftController;
 static emu::ControllerInputState g_rightController;
 static emu::KeyMapping g_keyMapping;
 
+// HMD state
+static emu::HMDPose g_hmdPose;
+static emu::HMDKeyMapping g_hmdKeyMapping;
+static emu::HMDSettings g_hmdSettings;
+static bool g_mouseLookEnabled = false;
+static POINT g_lastMousePos = { 0, 0 };
+static bool g_wasRightButtonDown = false;
+
 // IPC Client
 static emu::IPCClient g_ipcClient;
 
@@ -117,6 +125,97 @@ void UpdateInput(HWND hwnd) {
     // System buttons
     g_leftController.SetButton(emu::BTN_START, GetAsyncKeyState(g_keyMapping.system_button) & 0x8000);
     g_leftController.SetButton(emu::BTN_BACK, GetAsyncKeyState(g_keyMapping.menu_button) & 0x8000);
+}
+
+// Update HMD pose from keyboard/mouse
+void UpdateHMDInput(HWND hwnd, float deltaTime) {
+    // Toggle mouse look with right mouse button
+    bool rightButtonDown = (GetAsyncKeyState(g_hmdKeyMapping.mouse_look_toggle) & 0x8000) != 0;
+    if (rightButtonDown && !g_wasRightButtonDown) {
+        g_mouseLookEnabled = !g_mouseLookEnabled;
+        if (g_mouseLookEnabled) {
+            // Store current mouse position when enabling
+            GetCursorPos(&g_lastMousePos);
+            // Hide cursor
+            ShowCursor(FALSE);
+        } else {
+            // Show cursor when disabling
+            ShowCursor(TRUE);
+        }
+    }
+    g_wasRightButtonDown = rightButtonDown;
+
+    // Mouse look (when enabled)
+    if (g_mouseLookEnabled) {
+        POINT currentPos;
+        GetCursorPos(&currentPos);
+
+        int deltaX = currentPos.x - g_lastMousePos.x;
+        int deltaY = currentPos.y - g_lastMousePos.y;
+
+        if (deltaX != 0 || deltaY != 0) {
+            // Update rotation
+            g_hmdPose.yaw -= deltaX * g_hmdSettings.mouse_sensitivity;
+            g_hmdPose.pitch -= deltaY * g_hmdSettings.mouse_sensitivity;
+
+            // Clamp pitch to prevent flipping
+            if (g_hmdPose.pitch < g_hmdSettings.min_pitch)
+                g_hmdPose.pitch = g_hmdSettings.min_pitch;
+            if (g_hmdPose.pitch > g_hmdSettings.max_pitch)
+                g_hmdPose.pitch = g_hmdSettings.max_pitch;
+
+            // Keep yaw in [-PI, PI] range
+            while (g_hmdPose.yaw > 3.14159f) g_hmdPose.yaw -= 6.28318f;
+            while (g_hmdPose.yaw < -3.14159f) g_hmdPose.yaw += 6.28318f;
+
+            // Reset cursor to center to allow continuous rotation
+            SetCursorPos(g_lastMousePos.x, g_lastMousePos.y);
+        }
+    }
+
+    // Keyboard movement
+    float moveSpeed = g_hmdSettings.move_speed * deltaTime;
+
+    // Speed modifiers
+    if (GetAsyncKeyState(g_hmdKeyMapping.speed_fast) & 0x8000)
+        moveSpeed *= g_hmdSettings.fast_multiplier;
+    if (GetAsyncKeyState(g_hmdKeyMapping.speed_slow) & 0x8000)
+        moveSpeed *= g_hmdSettings.slow_multiplier;
+
+    // Calculate movement direction based on yaw
+    float sinYaw = sinf(g_hmdPose.yaw);
+    float cosYaw = cosf(g_hmdPose.yaw);
+
+    // Forward/backward (Z axis in OpenVR)
+    if (GetAsyncKeyState(g_hmdKeyMapping.move_forward) & 0x8000) {
+        g_hmdPose.position[0] -= sinYaw * moveSpeed;
+        g_hmdPose.position[2] -= cosYaw * moveSpeed;
+    }
+    if (GetAsyncKeyState(g_hmdKeyMapping.move_backward) & 0x8000) {
+        g_hmdPose.position[0] += sinYaw * moveSpeed;
+        g_hmdPose.position[2] += cosYaw * moveSpeed;
+    }
+
+    // Left/right strafe (X axis)
+    if (GetAsyncKeyState(g_hmdKeyMapping.move_left) & 0x8000) {
+        g_hmdPose.position[0] -= cosYaw * moveSpeed;
+        g_hmdPose.position[2] += sinYaw * moveSpeed;
+    }
+    if (GetAsyncKeyState(g_hmdKeyMapping.move_right) & 0x8000) {
+        g_hmdPose.position[0] += cosYaw * moveSpeed;
+        g_hmdPose.position[2] -= sinYaw * moveSpeed;
+    }
+
+    // Up/down (Y axis)
+    if (GetAsyncKeyState(g_hmdKeyMapping.move_up) & 0x8000)
+        g_hmdPose.position[1] += moveSpeed;
+    if (GetAsyncKeyState(g_hmdKeyMapping.move_down) & 0x8000)
+        g_hmdPose.position[1] -= moveSpeed;
+
+    // Reset pose
+    if (GetAsyncKeyState(g_hmdKeyMapping.reset_pose) & 0x8000) {
+        g_hmdPose.Reset();
+    }
 }
 
 // Draw a button indicator
@@ -223,6 +322,118 @@ void DrawControllerPanel(const char* name, const emu::ControllerInputState& stat
     ImGui::EndChild();
 }
 
+// Draw HMD control panel
+void DrawHMDPanel() {
+    ImGui::BeginChild("HMD", ImVec2(520, 280), true);
+    ImGui::Text("HMD Emulator");
+    ImGui::Separator();
+
+    // Mouse look status
+    if (g_mouseLookEnabled) {
+        ImGui::TextColored(ImVec4(0.2f, 0.8f, 0.2f, 1.0f), "Mouse Look: ENABLED (Right-click to toggle)");
+    } else {
+        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "Mouse Look: DISABLED (Right-click to toggle)");
+    }
+    ImGui::Separator();
+
+    // Position display
+    ImGui::Text("Position (meters):");
+    ImGui::Text("  X: %+.3f  Y: %+.3f  Z: %+.3f",
+        g_hmdPose.position[0], g_hmdPose.position[1], g_hmdPose.position[2]);
+
+    // Rotation display (convert to degrees for readability)
+    float yawDeg = g_hmdPose.yaw * 57.2958f;
+    float pitchDeg = g_hmdPose.pitch * 57.2958f;
+    float rollDeg = g_hmdPose.roll * 57.2958f;
+    ImGui::Text("Rotation (degrees):");
+    ImGui::Text("  Yaw: %+.1f  Pitch: %+.1f  Roll: %+.1f", yawDeg, pitchDeg, rollDeg);
+    ImGui::Separator();
+
+    // Visual representation - top-down view
+    ImGui::Text("Top-Down View:");
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImVec2 p = ImGui::GetCursorScreenPos();
+    float viewSize = 120.0f;
+    float centerX = p.x + viewSize;
+    float centerY = p.y + viewSize / 2;
+
+    // Background
+    draw_list->AddRectFilled(
+        ImVec2(p.x, p.y),
+        ImVec2(p.x + viewSize * 2, p.y + viewSize),
+        IM_COL32(30, 30, 40, 255));
+
+    // Grid
+    draw_list->AddLine(ImVec2(centerX, p.y), ImVec2(centerX, p.y + viewSize), IM_COL32(60, 60, 60, 255));
+    draw_list->AddLine(ImVec2(p.x, centerY), ImVec2(p.x + viewSize * 2, centerY), IM_COL32(60, 60, 60, 255));
+
+    // Scale: 1 meter = 20 pixels
+    float scale = 20.0f;
+    float hmdX = centerX + g_hmdPose.position[0] * scale;
+    float hmdY = centerY - g_hmdPose.position[2] * scale;  // Z is forward, Y-up in screen
+
+    // Clamp to view bounds
+    hmdX = fmaxf(p.x + 10, fminf(p.x + viewSize * 2 - 10, hmdX));
+    hmdY = fmaxf(p.y + 10, fminf(p.y + viewSize - 10, hmdY));
+
+    // Draw HMD as triangle pointing in view direction
+    float triSize = 12.0f;
+    float dirX = -sinf(g_hmdPose.yaw);
+    float dirY = -cosf(g_hmdPose.yaw);
+
+    ImVec2 tip(hmdX + dirX * triSize, hmdY + dirY * triSize);
+    ImVec2 left(hmdX + dirY * triSize * 0.5f, hmdY - dirX * triSize * 0.5f);
+    ImVec2 right(hmdX - dirY * triSize * 0.5f, hmdY + dirX * triSize * 0.5f);
+
+    draw_list->AddTriangleFilled(tip, left, right, IM_COL32(100, 200, 100, 255));
+    draw_list->AddTriangle(tip, left, right, IM_COL32(150, 255, 150, 255));
+
+    // Origin marker
+    draw_list->AddCircle(ImVec2(centerX, centerY), 4, IM_COL32(100, 100, 200, 255));
+
+    ImGui::Dummy(ImVec2(viewSize * 2, viewSize));
+
+    // Side view (pitch visualization)
+    ImGui::SameLine();
+    ImGui::Text("  Side View:");
+    ImVec2 p2 = ImGui::GetCursorScreenPos();
+    p2.x += 10;
+
+    // Background
+    draw_list->AddRectFilled(
+        ImVec2(p2.x, p.y),
+        ImVec2(p2.x + 100, p.y + viewSize),
+        IM_COL32(30, 30, 40, 255));
+
+    // Ground line
+    float groundY = p.y + viewSize - 20;
+    draw_list->AddLine(ImVec2(p2.x, groundY), ImVec2(p2.x + 100, groundY), IM_COL32(80, 60, 40, 255), 2.0f);
+
+    // Height indicator
+    float heightY = groundY - g_hmdPose.position[1] * scale;
+    heightY = fmaxf(p.y + 10, fminf(groundY - 5, heightY));
+    float sideX = p2.x + 50;
+
+    // Draw head circle with pitch direction
+    draw_list->AddCircleFilled(ImVec2(sideX, heightY), 8, IM_COL32(100, 200, 100, 255));
+    float lookDirX = cosf(g_hmdPose.pitch) * 15;
+    float lookDirY = -sinf(g_hmdPose.pitch) * 15;
+    draw_list->AddLine(
+        ImVec2(sideX, heightY),
+        ImVec2(sideX + lookDirX, heightY + lookDirY),
+        IM_COL32(255, 255, 100, 255), 2.0f);
+
+    ImGui::Separator();
+
+    // Key mapping info
+    ImGui::Text("Controls:");
+    ImGui::BulletText("WASD: Move | Q/E: Down/Up | R: Reset");
+    ImGui::BulletText("Shift: Fast | Ctrl: Slow");
+    ImGui::BulletText("Right-Click: Toggle Mouse Look");
+
+    ImGui::EndChild();
+}
+
 // Main entry point
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     (void)hPrevInstance;
@@ -232,8 +443,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, hInstance,
         nullptr, nullptr, nullptr, nullptr, L"EmuController", nullptr };
     ::RegisterClassExW(&wc);
-    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"EmuController - OpenVR Controller Emulator",
-        WS_OVERLAPPEDWINDOW, 100, 100, 600, 500, nullptr, nullptr, wc.hInstance, nullptr);
+    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"EmuController - OpenVR Emulator",
+        WS_OVERLAPPEDWINDOW, 100, 100, 560, 750, nullptr, nullptr, wc.hInstance, nullptr);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd)) {
@@ -263,6 +474,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Start IPC connection thread
     g_ipcClient.StartConnectionThread();
 
+    // Delta time tracking
+    LARGE_INTEGER frequency, lastTime, currentTime;
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&lastTime);
+
     // Main loop
     bool done = false;
     while (!done) {
@@ -284,12 +500,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             CreateRenderTarget();
         }
 
+        // Calculate delta time
+        QueryPerformanceCounter(&currentTime);
+        float deltaTime = static_cast<float>(currentTime.QuadPart - lastTime.QuadPart) /
+                          static_cast<float>(frequency.QuadPart);
+        lastTime = currentTime;
+
         // Update input state
         UpdateInput(hwnd);
+        UpdateHMDInput(hwnd, deltaTime);
 
         // Send input to driver via IPC
         if (g_ipcClient.IsConnected()) {
             g_ipcClient.SendInputState(g_leftController, g_rightController);
+            // TODO: Send HMD pose when IPC is extended
         }
 
         // Start the Dear ImGui frame
@@ -305,7 +529,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
 
         // Header
-        ImGui::Text("EmuController v1.0 - OpenVR Controller Emulator");
+        ImGui::Text("EmuController v1.1 - OpenVR Emulator (HMD + Controllers)");
         ImGui::Separator();
 
         // Connection status
@@ -316,19 +540,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
         ImGui::Separator();
 
+        // HMD panel
+        DrawHMDPanel();
+        ImGui::Separator();
+
         // Controller panels side by side
         DrawControllerPanel("Left Controller", g_leftController, true);
         ImGui::SameLine();
         DrawControllerPanel("Right Controller", g_rightController, false);
-
-        // Key mapping info
-        ImGui::Separator();
-        ImGui::Text("Key Mapping:");
-        ImGui::BulletText("Left Stick: W/A/S/D | Right Stick: Arrow Keys");
-        ImGui::BulletText("Left Trigger: Left Click | Right Trigger: Right Click");
-        ImGui::BulletText("Left Grip: Left Shift | Right Grip: Right Shift");
-        ImGui::BulletText("Buttons: Q/E/1/2 (Left) | J/K/U/I (Right)");
-        ImGui::BulletText("D-Pad: Numpad 8/2/4/6");
 
         ImGui::End();
 
@@ -345,6 +564,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     // Cleanup
+    if (g_mouseLookEnabled) {
+        ShowCursor(TRUE);  // Restore cursor visibility
+    }
+
     g_ipcClient.StopConnectionThread();
     g_ipcClient.Disconnect();
 
