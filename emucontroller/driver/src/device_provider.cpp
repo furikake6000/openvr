@@ -16,6 +16,17 @@ vr::EVRInitError EmuDeviceProvider::Init(vr::IVRDriverContext* pDriverContext) {
         return vr::VRInitError_Driver_Failed;
     }
 
+    // Create HMD
+    hmd_ = std::make_unique<EmuHMDDriver>();
+    if (!vr::VRServerDriverHost()->TrackedDeviceAdded(
+            hmd_->GetSerialNumber().c_str(),
+            vr::TrackedDeviceClass_HMD,
+            hmd_.get())) {
+        DriverLog("Failed to add HMD!\n");
+        return vr::VRInitError_Driver_Unknown;
+    }
+    DriverLog("HMD added successfully\n");
+
     // Create left controller
     left_controller_ = std::make_unique<EmuControllerDriver>(vr::TrackedControllerRole_LeftHand);
     if (!vr::VRServerDriverHost()->TrackedDeviceAdded(
@@ -48,6 +59,7 @@ void EmuDeviceProvider::Cleanup() {
         ipc_server_.reset();
     }
 
+    hmd_.reset();
     left_controller_.reset();
     right_controller_.reset();
 
@@ -61,6 +73,7 @@ const char* const* EmuDeviceProvider::GetInterfaceVersions() {
 void EmuDeviceProvider::RunFrame() {
     // Get input from IPC
     if (ipc_server_ && ipc_server_->IsClientConnected()) {
+        // Get controller input
         ControllerInputState left_state, right_state;
         if (ipc_server_->GetInputState(left_state, right_state)) {
             if (left_controller_) {
@@ -70,9 +83,20 @@ void EmuDeviceProvider::RunFrame() {
                 right_controller_->UpdateInputState(right_state);
             }
         }
+
+        // Get HMD pose
+        HMDPoseData hmd_pose;
+        if (ipc_server_->GetHMDPose(hmd_pose)) {
+            if (hmd_) {
+                hmd_->UpdatePose(hmd_pose);
+            }
+        }
     }
 
-    // Run frame for each controller
+    // Run frame for each device
+    if (hmd_) {
+        hmd_->RunFrame();
+    }
     if (left_controller_) {
         left_controller_->RunFrame();
     }
@@ -83,6 +107,9 @@ void EmuDeviceProvider::RunFrame() {
     // Process events
     vr::VREvent_t event{};
     while (vr::VRServerDriverHost()->PollNextEvent(&event, sizeof(vr::VREvent_t))) {
+        if (hmd_) {
+            hmd_->ProcessEvent(event);
+        }
         if (left_controller_) {
             left_controller_->ProcessEvent(event);
         }

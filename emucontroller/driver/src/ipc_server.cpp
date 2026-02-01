@@ -49,6 +49,15 @@ bool IPCServer::GetInputState(ControllerInputState& left, ControllerInputState& 
     return true;
 }
 
+bool IPCServer::GetHMDPose(HMDPoseData& pose) {
+    std::lock_guard<std::mutex> lock(hmd_mutex_);
+    if (!hmd_updated_) return false;
+
+    pose = hmd_pose_;
+    hmd_updated_ = false;
+    return true;
+}
+
 void IPCServer::ServerThread() {
     DriverLog("IPC Server thread running\n");
 
@@ -172,6 +181,22 @@ void IPCServer::ProcessMessage(const uint8_t* data, size_t length) {
             break;
         }
 
+        case MSG_HMD_POSE: {
+            if (length >= sizeof(HMDPoseMessage)) {
+                const HMDPoseMessage* msg = reinterpret_cast<const HMDPoseMessage*>(data);
+
+                std::lock_guard<std::mutex> lock(hmd_mutex_);
+                for (int i = 0; i < 3; i++) {
+                    hmd_pose_.position[i] = msg->position[i];
+                }
+                for (int i = 0; i < 4; i++) {
+                    hmd_pose_.quaternion[i] = msg->quaternion[i];
+                }
+                hmd_updated_ = true;
+            }
+            break;
+        }
+
         case MSG_CONNECT: {
             DriverLog("Received connect message from client\n");
             // Send status response
@@ -181,7 +206,7 @@ void IPCServer::ProcessMessage(const uint8_t* data, size_t length) {
             response.driver_active = 1;
             response.left_connected = 1;
             response.right_connected = 1;
-            response.reserved = 0;
+            response.hmd_connected = 1;
 
             DWORD bytesWritten = 0;
             WriteFile(pipe_handle_, &response, sizeof(response), &bytesWritten, nullptr);

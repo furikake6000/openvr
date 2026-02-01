@@ -513,7 +513,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         // Send input to driver via IPC
         if (g_ipcClient.IsConnected()) {
             g_ipcClient.SendInputState(g_leftController, g_rightController);
-            // TODO: Send HMD pose when IPC is extended
+            g_ipcClient.SendHMDPose(g_hmdPose);
         }
 
         // Start the Dear ImGui frame

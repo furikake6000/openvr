@@ -18,6 +18,7 @@ public:
     bool IsConnected() const { return connected_.load(); }
 
     bool SendInputState(const ControllerInputState& left, const ControllerInputState& right);
+    bool SendHMDPose(const HMDPose& pose);
 
     // Start/stop background connection thread
     void StartConnectionThread();

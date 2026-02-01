@@ -113,6 +113,42 @@ bool IPCClient::SendInputState(const ControllerInputState& left, const Controlle
     return true;
 }
 
+bool IPCClient::SendHMDPose(const HMDPose& pose) {
+    if (!connected_.load() || pipe_handle_ == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    HMDPoseMessage msg;
+    msg.header.type = MSG_HMD_POSE;
+    msg.header.length = sizeof(HMDPoseMessage) - sizeof(MessageHeader);
+
+    // Position
+    msg.position[0] = pose.position[0];
+    msg.position[1] = pose.position[1];
+    msg.position[2] = pose.position[2];
+
+    // Convert Euler angles to quaternion
+    EulerToQuaternion(pose.yaw, pose.pitch, pose.roll, msg.quaternion);
+
+    // Timestamp
+    msg.timestamp = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()
+        ).count()
+    );
+
+    DWORD bytesWritten = 0;
+    if (!WriteFile(pipe_handle_, &msg, sizeof(msg), &bytesWritten, nullptr)) {
+        // Connection lost
+        connected_ = false;
+        CloseHandle(pipe_handle_);
+        pipe_handle_ = INVALID_HANDLE_VALUE;
+        return false;
+    }
+
+    return true;
+}
+
 void IPCClient::StartConnectionThread() {
     if (running_.load()) return;
 

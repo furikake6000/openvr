@@ -8,6 +8,8 @@ add_library(driver_emucontroller SHARED
     src/hmd_driver_factory.cpp
     src/device_provider.cpp
     src/controller_device_driver.cpp
+    src/hmd_device_driver.cpp
+    src/hmd_display_component.cpp
     src/ipc_server.cpp
     src/driverlog.cpp
 )

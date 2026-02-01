@@ -3,6 +3,7 @@
 #include <openvr_driver.h>
 #include <memory>
 #include "controller_device_driver.h"
+#include "hmd_device_driver.h"
 #include "ipc_server.h"
 
 namespace emu {
@@ -19,6 +20,7 @@ public:
     void LeaveStandby() override;
 
 private:
+    std::unique_ptr<EmuHMDDriver> hmd_;
     std::unique_ptr<EmuControllerDriver> left_controller_;
     std::unique_ptr<EmuControllerDriver> right_controller_;
     std::unique_ptr<IPCServer> ipc_server_;
