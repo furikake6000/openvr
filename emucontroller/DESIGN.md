@@ -91,14 +91,16 @@ enum ButtonFlags : uint16_t {
 
 | 入力 | 左コントローラー | 右コントローラー |
 |-----|-----------------|-----------------|
-| スティック移動 | W/A/S/D | マウス移動 |
-| スティック押込 | Space | 左クリック |
-| トリガー | Left Shift | 右クリック |
-| グリップ | Left Ctrl | 中クリック |
+| スティック移動 | W/A/S/D | Arrow Keys |
+| スティック押込 | Space | L |
+| トリガー | Left Click | Right Click |
+| グリップ | Left Shift | Right Shift |
 | A | Q | J |
 | B | E | K |
 | X | 1 | U |
 | Y | 2 | I |
+| バンパー | R | O |
+| D-Pad | Numpad 8/2/4/6 | - |
 | システム | Escape | - |
 | メニュー | Tab | - |
 
@@ -107,7 +109,7 @@ enum ButtonFlags : uint16_t {
 ## フォルダ構成
 
 ```
-emudriver/
+emucontroller/
 ├── DESIGN.md              # この設計書
 ├── CMakeLists.txt         # ルートCMake
 ├── common/
